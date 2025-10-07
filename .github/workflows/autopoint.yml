@@ -1,55 +1,52 @@
-name: Continuous Commits and PRs
+name: Massive Commits and PRs
 
 on:
   workflow_dispatch:
     inputs:
-      commit_count:
-        description: "Jumlah commit yang ingin dibuat"
-        default: "1500"
+      total_batches:
+        description: "Jumlah batch (misal 15)"
+        default: "127"
+      commits_per_batch:
+        description: "Jumlah commit per batch (misal 100)"
+        default: "13"
       year:
-        description: "Tahun target (opsional)"
+        description: "Tahun target"
         default: "2025"
 
 jobs:
-  generate-activity:
+  commit-pr-generator:
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup git identity
+      - name: Setup git
         run: |
           git config --global user.name "ThoriqRohan"
           git config --global user.email "thoriq@example.com"
 
-      - name: Create new branch
-        run: |
-          BRANCH_NAME="update-$(date +%s)"
-          git checkout -b $BRANCH_NAME
-          echo "Branch baru: $BRANCH_NAME" >> branch.log
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
-
-      - name: Generate commits
-        run: |
-          for ((i=1; i<=${{ github.event.inputs.commit_count }}; i++)); do
-            echo "Generated commit $i for ${{ github.event.inputs.year }}" >> commits.txt
-            git add commits.txt
-            git commit -m "Commit ke-$i untuk ${{ github.event.inputs.year }}"
-          done
-
-      - name: Push branch
-        run: |
-          git push https://${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ env.BRANCH_NAME }}
-
-      - name: Create Pull Request
+      - name: Generate commits and PRs
         env:
           GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
         run: |
-          gh pr create \
-            --title "Generated PR ${{ github.event.inputs.year }}" \
-            --body "Automated PR dengan ${{ github.event.inputs.commit_count }} commit untuk ${{ github.event.inputs.year }}" \
-            --base main \
-            --head ${{ env.BRANCH_NAME }} || echo "PR sudah ada atau gagal dibuat"
+          for ((batch=1; batch<=${{ github.event.inputs.total_batches }}; batch++)); do
+            BRANCH_NAME="update-$(date +%s)-$RANDOM"
+            git checkout -b $BRANCH_NAME
+
+            for ((i=1; i<=${{ github.event.inputs.commits_per_batch }}; i++)); do
+              echo "$(date) | Commit ke-$i dari batch-$batch untuk ${{ github.event.inputs.year }}" >> commits.log
+              git add commits.log
+              git commit -m "Commit $i (batch-$batch, ${{ github.event.inputs.year }})"
+            done
+
+            git push https://${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}.git HEAD:$BRANCH_NAME
+
+            gh pr create \
+              --title "Batch-$batch: ${{ github.event.inputs.commits_per_batch }} commits" \
+              --body "Batch $batch dengan ${{ github.event.inputs.commits_per_batch }} commits untuk ${{ github.event.inputs.year }}" \
+              --base main \
+              --head $BRANCH_NAME || echo "PR sudah ada"
+          done
