@@ -5,7 +5,7 @@ on:
     inputs:
       commit_count:
         description: "Jumlah commit yang ingin dibuat"
-        default: "100"
+        default: "1500"
       year:
         description: "Tahun target (opsional)"
         default: "2025"
