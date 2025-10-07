@@ -1,39 +1,34 @@
-name: Legion AutoContrib
+name: Continuous Commits and PRs
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/5 * * * *'  # jalan tiap 5 menit (bisa dimatikan kalau manual)
 
 jobs:
-  contribute:
+  generate-activity:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup git
+      - name: Setup git identity
         run: |
           git config --global user.name "ThoriqRohan"
-          git config --global user.email "example@email.com"
+          git config --global user.email "thoriq@example.com"
 
-      - name: Generate random commits
+      - name: Generate commits
         run: |
-          for i in {1..100}; do
-            echo "Update $i - $(date)" >> random_file.txt
-            git add random_file.txt
-            git commit -m "Auto commit $i [$(date)]"
+          for i in {1..10}; do
+            echo "Commit number $i" >> commits.log
+            git add commits.log
+            git commit -m "Generated commit $i"
           done
+          git push https://${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
 
-      - name: Push commits
+      - name: Create pull request
+        env:
+          GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
         run: |
-          git push https://${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }} HEAD:main
-
-      - name: Create issues and PRs
-        run: |
-          for i in {1..5}; do
-            gh issue create --title "Auto issue $i" --body "Generated automatically for Legion points" || true
-            gh pr create --title "Auto PR $i" --body "Generated automatically" --base main || true
+          gh pr create --title "Auto PR $(date)" --body "Generated automatically via workflow" --base main --head main || echo "PR already exists"
           done
         env:
           GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
