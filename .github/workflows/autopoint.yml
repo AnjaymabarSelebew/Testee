@@ -30,5 +30,3 @@ jobs:
         run: |
           gh pr create --title "Auto PR $(date)" --body "Generated automatically via workflow" --base main --head main || echo "PR already exists"
           done
-        env:
-          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
