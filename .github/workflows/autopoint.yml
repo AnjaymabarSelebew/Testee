@@ -1,0 +1,39 @@
+name: Legion AutoContrib
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'  # jalan tiap 5 menit (bisa dimatikan kalau manual)
+
+jobs:
+  contribute:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup git
+        run: |
+          git config --global user.name "ThoriqRohan"
+          git config --global user.email "example@email.com"
+
+      - name: Generate random commits
+        run: |
+          for i in {1..100}; do
+            echo "Update $i - $(date)" >> random_file.txt
+            git add random_file.txt
+            git commit -m "Auto commit $i [$(date)]"
+          done
+
+      - name: Push commits
+        run: |
+          git push https://${{ secrets.PERSONAL_TOKEN }}@github.com/${{ github.repository }} HEAD:main
+
+      - name: Create issues and PRs
+        run: |
+          for i in {1..5}; do
+            gh issue create --title "Auto issue $i" --body "Generated automatically for Legion points" || true
+            gh pr create --title "Auto PR $i" --body "Generated automatically" --base main || true
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
